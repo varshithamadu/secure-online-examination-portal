@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Secure Quiz – 160 MCQs / 2.5 Hours</title>
+  <style>
+    :root {
+      --bg: #0f172a; /* slate-900 */
+      --card: #111827; /* gray-900 */
+      --muted: #94a3b8; /* slate-400 */
+      --text: #e5e7eb; /* gray-200 */
+      --accent: #22c55e; /* green-500 */
+      --warn: #f59e0b; /* amber-500 */
+      --danger: #ef4444; /* red-500 */
+      --border: #1f2937; /* gray-800 */
+    }
+    * { box-sizing: border-box }
+    html, body { height: 100% }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif;
+      background: radial-gradient(1200px 800px at 10% 10%, #0b1220, var(--bg));
+      color: var(--text);
+    }
+    .container { max-width: 980px; margin: 0 auto; padding: 24px }
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00));
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      backdrop-filter: blur(4px);
+    }
+    header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px }
+    .brand { font-weight: 700; letter-spacing: 0.4px }
+    .muted { color: var(--muted) }
+    .timer {
+      display:flex; align-items:center; gap:10px; font-variant-numeric: tabular-nums;
+      background: #0b1220; border:1px solid var(--border); padding: 8px 12px; border-radius: 10px;
+    }
+    .progress { height: 8px; width: 100%; background: #0b1220; border-radius: 999px; overflow:hidden; border:1px solid var(--border) }
+    .progress > span { display:block; height:100%; width:0%; background: linear-gradient(90deg, var(--accent), #16a34a); transition: width 1s linear }
+    .row { display:grid; grid-template-columns: 1fr; gap:14px; margin: 14px 0 }
+    .q { padding:14px; border:1px solid var(--border); border-radius: 12px }
+    .q h3 { margin: 0 0 8px 0; font-size: 16px }
+    .answers { display:grid; gap:8px }
+    label.option { display:flex; align-items: flex-start; gap:10px; padding:8px 10px; border:1px solid transparent; border-radius:10px; cursor:pointer }
+    input[type="radio"] { transform: translateY(2px) }
+    label.option:hover { background: rgba(255,255,255,0.03); border-color: var(--border) }
+
+    .tabs { display:flex; flex-wrap:nowrap; gap:8px; margin:16px 0 8px; overflow-x:auto; padding-bottom:4px }
+    .tab { background:#0b1220; border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:999px; cursor:pointer; font-weight:600; flex:0 0 auto; white-space:nowrap }
+    .tab.active { background: var(--accent); color:#04210f; border-color: transparent }
+    .unitBlock { display:none; gap:14px }
+    .unitBlock.active { display:grid }
+
+    .controls { display:flex; align-items:center; justify-content: space-between; gap:10px; margin-top:16px }
+    button.primary { background: var(--accent); color:#04210f; border:none; padding:10px 16px; border-radius: 10px; font-weight: 700; cursor:pointer }
+    button.secondary { background: #0b1220; color: var(--text); border:1px solid var(--border); padding:10px 16px; border-radius: 10px; cursor:pointer }
+    button:disabled { opacity: 0.6; cursor: not-allowed }
+
+    .notice { background: #0b1220; border:1px solid var(--border); border-left: 4px solid var(--warn); padding:10px 12px; border-radius: 8px }
+    .danger { border-left-color: var(--danger) }
+
+    .center { text-align:center }
+    .hidden { display:none !important }
+
+    /* Start screen */
+    #startCard { margin-top: 8vh; }
+    .input { background: #0b1220; border:1px solid var(--border); color: var(--text); padding:10px 12px; border-radius: 10px; width: 100% }
+    .field { display:flex; flex-direction:column; gap:6px }
+    .field label { font-weight:600 }
+
+    /* Result screen */
+    .scoreBadge { font-size: 48px; font-weight: 800 }
+    .good { color: var(--accent) }
+    .bad { color: var(--danger) }
+    .review { text-align:left; margin-top:24px; display:grid; gap:16px; max-height:420px; overflow:auto; padding-right:8px }
+    .reviewItem { border:1px solid var(--border); border-radius:12px; padding:12px; background:#0b1220 }
+    .reviewItem h4 { margin:0 0 8px; font-size:15px }
+    .reviewItem p { margin:6px 0; color: var(--muted) }
+    .badge { display:inline-block; border-radius:999px; padding:2px 10px; font-size:12px; text-transform:uppercase; letter-spacing:0.4px }
+    .badge.correct { background: rgba(34,197,94,0.15); color: var(--accent) }
+    .badge.response { background: rgba(59,130,246,0.15); color: #38bdf8 }
+    .badge.blank { background: rgba(239,68,68,0.15); color: var(--danger) }
+
+    /* Anti-switch overlay */
+    #blocker {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.92); display:none; z-index: 9999; color: #fff;
+      align-items:center; justify-content:center; text-align:center; padding: 24px
+    }
+    #blocker .inner { max-width: 700px }
+    #blocker h2 { margin-top:0 }
+  </style>
+</head>
+<body>
+  <div id="blocker">
+    <div class="inner">
+      <h2>Exam Locked</h2>
+      <p>This exam runs in full‑screen. Switching tabs/windows or exiting full‑screen is not allowed.</p>
+      <p class="muted">The test will auto‑submit if you leave this page during the exam.</p>
+      <button id="resumeBtn" class="primary">Return to full‑screen</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <header>
+      <div>
+        <div class="brand">Secure Quiz</div>
+        <div class="muted">160 objective questions · 2.5 hours</div>
+      </div>
+      <div class="timer" id="timerBox" title="Remaining time">
+        <strong id="time">150:00</strong>
+      </div>
+    </header>
+
+    <!-- Start Card -->
+    <section id="startCard" class="card">
+      <h2>Ready to begin?</h2>
+      <p class="muted">Sign in with your roll number only. The exam will switch to full‑screen and must stay focused until you submit.</p>
+      <div class="row">
+        <div class="field">
+          <label for="rollNumber">Roll number</label>
+          <input class="input" id="rollNumber" placeholder="Enter roll number" autocomplete="off" required />
+        </div>
+      </div>
+      <div class="notice">Rule: Do not open other tabs/apps, and do not exit full‑screen. Leaving the page will auto‑submit.</div>
+      <div class="controls">
+        <span></span>
+        <button id="startBtn" class="primary">Start Exam</button>
+      </div>
+    </section>
+
+    <!-- Exam Card -->
+    <section id="examCard" class="card hidden">
+      <div class="progress"><span id="bar"></span></div>
+      <form id="quizForm"></form>
+      <div class="controls">
+        <div class="muted">All 160 questions are mandatory.</div>
+        <div>
+          <button id="submitBtn" class="primary" type="button">Submit Exam</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Result Card -->
+    <section id="resultCard" class="card hidden center">
+      <h2>Results</h2>
+      <p id="candidateOut" class="muted"></p>
+      <div id="score" class="scoreBadge"></div>
+      <p id="verdict" class="muted"></p>
+      <div id="review" class="review"></div>
+      <div class="controls center" style="justify-content:center">
+        <button id="retryBtn" class="secondary">Restart</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // ====== Quiz Data (8 units, 160 MCQs) ======
+    const UNITS = [
+      {
+        title: 'Unit-1: Introduction to C',
+        questions: [
+          { q: 'C language was developed by', options: ['Ken Thompson', 'Dennis Ritchie', 'James Gosling', 'Bjarne Stroustrup'], a: 1 },
+          { q: 'C language was developed in the year', options: ['1969', '1970', '1972', '1980'], a: 2 },
+          { q: 'C was developed at', options: ['Microsoft', 'AT&T Bell Labs', 'IBM', 'Oracle'], a: 1 },
+          { q: 'C is a ______ language.', options: ['High level', 'Low level', 'Middle level', 'Assembly'], a: 2 },
+          { q: 'C language is a successor of', options: ['COBOL', 'B Language', 'C++', 'Java'], a: 1 },
+          { q: 'Extension of a C program file is', options: ['.cpp', '.java', '.c', '.h'], a: 2 },
+          { q: 'First function executed in C program is', options: ['start()', 'main()', 'init()', 'execute()'], a: 1 },
+          { q: 'Header files in C have extension', options: ['.exe', '.bin', '.h', '.obj'], a: 2 },
+          { q: 'Preprocessor directives in C start with', options: ['$', '@', '#', '%'], a: 2 },
+          { q: 'The symbol used to end a C statement is', options: [':', ';', '.', '#'], a: 1 },
+          { q: 'printf() and scanf() are declared in', options: ['conio.h', 'stdio.h', 'math.h', 'string.h'], a: 1 },
+          { q: 'To declare a constant in C, we use keyword', options: ['var', 'final', 'const', 'static'], a: 2 },
+          { q: 'C language is mainly used for', options: ['Artificial Intelligence', 'System Programming', 'Web Development', 'Database Management'], a: 1 },
+          { q: '\\n represents', options: ['Null character', 'Newline character', 'Tab character', 'Space character'], a: 1 },
+          { q: 'Which function is used to return a value to the OS?', options: ['return 0;', 'stop;', 'exit;', 'end;'], a: 0 },
+          { q: 'Shortcut to compile a program in Turbo C is', options: ['Ctrl+F9', 'Alt+F9', 'Shift+F9', 'F2'], a: 1 },
+          { q: 'Shortcut to run a program in Turbo C is', options: ['Ctrl+F9', 'Alt+F9', 'Shift+F9', 'F5'], a: 0 },
+          { q: 'C programs are executed using a', options: ['Compiler', 'Interpreter', 'Loader', 'Assembler'], a: 0 },
+          { q: 'A single-line comment in C is written as', options: ['# comment', '// comment', '/* comment */', '— comment'], a: 1 },
+          { q: 'C language follows ______ approach.', options: ['Object-oriented', 'Procedure-oriented', 'Functional', 'Logic-based'], a: 1 },
+        ],
+      },
+      {
+        title: 'Unit-2: Operators & Expressions',
+        questions: [
+          { q: 'Which operator is used to access the value stored at an address?', options: ['&', '*', '->', '[]'], a: 1 },
+          { q: 'Which operator gives the address of a variable?', options: ['*', '&', '%', '->'], a: 1 },
+          { q: 'In C, modulus operator % can be applied only on', options: ['int', 'float', 'char', 'double'], a: 0 },
+          { q: 'Relational operators always return', options: ['0 or 1', 'True or False', 'Garbage value', 'None'], a: 0 },
+          { q: 'Which operator has the highest precedence?', options: ['++ (increment)', '* (multiplication)', '= (assignment)', '&& (logical AND)'], a: 0 },
+          { q: 'What is the result of 5/2 in C?', options: ['2.5', '3', '2', 'Error'], a: 2 },
+          { q: 'What is the result of 5/2.0 in C?', options: ['2', '2.0', '2.5', 'Error'], a: 2 },
+          { q: 'Which operator is used for conditional evaluation?', options: ['if-else', '? :', 'switch', 'goto'], a: 1 },
+          { q: 'What is the output of 10 % 3?', options: ['1', '2', '3', '0'], a: 1 },
+          { q: 'Which of the following is NOT a logical operator?', options: ['&&', '||', '!', '&'], a: 3 },
+          { q: 'What is the associativity of assignment operator =?', options: ['Left to Right', 'Right to Left', 'Top to Bottom', 'None'], a: 1 },
+          { q: 'Which operator is used to combine two conditions?', options: ['+', '=', '&&', ','], a: 2 },
+          { q: 'Which operator is used for bitwise OR?', options: ['|', '||', '&', '&&'], a: 0 },
+          { q: 'What is the output of 2 << 1?', options: ['2', '4', '1', '0'], a: 1 },
+          { q: 'What is the output of 8 >> 2?', options: ['2', '4', '8', '16'], a: 0 },
+          { q: 'Which of the following is NOT a valid assignment?', options: ['x = y = z = 0;', 'x = (y = z);', '(x = y) = z;', 'x = y + z;'], a: 2 },
+          { q: 'The operator sizeof returns result in', options: ['int', 'unsigned int', 'long', 'size_t'], a: 3 },
+          { q: 'Which operator is used to access structure members using pointer?', options: ['.', '->', '&', '*'], a: 1 },
+          { q: 'Which operator has the lowest precedence?', options: [', (comma)', '= (assignment)', '|| (logical OR)', '+ (addition)'], a: 0 },
+          { q: 'Which operator is used to evaluate expressions from left to right?', options: ['Conditional', 'Comma', 'Logical AND', 'Assignment'], a: 1 },
+        ],
+      },
+      {
+        title: 'Unit-3: Control Statements',
+        questions: [
+          { q: 'Which statement is used to make decisions in C?', options: ['for', 'while', 'if', 'goto'], a: 2 },
+          { q: 'The else part is executed only if', options: ['if condition is true', 'if condition is false', 'loop ends', 'none'], a: 1 },
+          { q: 'Which of the following is an entry-controlled loop?', options: ['while', 'do-while', 'for', 'both A & C'], a: 3 },
+          { q: 'Which of the following is an exit-controlled loop?', options: ['while', 'for', 'do-while', 'switch'], a: 2 },
+          { q: 'Minimum number of times a do-while loop executes?', options: ['0', '1', 'n', 'Infinite'], a: 1 },
+          { q: 'Which loop is best if number of iterations is known?', options: ['for', 'while', 'do-while', 'switch'], a: 0 },
+          { q: 'Which statement is used to exit from a loop immediately?', options: ['stop', 'break', 'exit', 'continue'], a: 1 },
+          { q: 'Which statement skips current iteration and continues with the next one?', options: ['break', 'exit', 'continue', 'goto'], a: 2 },
+          { q: 'Which statement is used to transfer control unconditionally?', options: ['break', 'exit', 'goto', 'switch'], a: 2 },
+          { q: 'The default case in switch executes when', options: ['first case matches', 'no case matches', 'all cases match', 'error occurs'], a: 1 },
+          { q: 'In a switch statement, each case must end with', options: ['stop', 'break', 'return', 'continue'], a: 1 },
+          { q: 'Which loop works best for menu-driven programs?', options: ['for', 'while', 'do-while with switch', 'goto'], a: 2 },
+          { q: 'What is the output of for(int i=0;i<3;i++) printf("Hi");', options: ['Hi', 'HiHi', 'HiHiHi', 'Error'], a: 2 },
+          { q: 'Which statement is used to terminate the program execution?', options: ['break', 'exit(0)', 'stop', 'return'], a: 1 },
+          { q: 'Can switch statement work with float?', options: ['Yes', 'No', 'Sometimes', 'Compiler dependent'], a: 1 },
+          { q: 'Which loop is used when body must execute at least once?', options: ['for', 'while', 'do-while', 'switch'], a: 2 },
+          { q: 'Which of the following is not a control statement?', options: ['if', 'while', 'printf', 'for'], a: 2 },
+          { q: 'Nested loops mean', options: ['Loop inside another loop', 'Function inside a loop', 'Loop inside switch', 'Multiple if statements'], a: 0 },
+          { q: 'Maximum number of else if with an if?', options: ['1', '2', 'unlimited', 'none'], a: 2 },
+          { q: 'The keyword default is used in', options: ['if', 'switch', 'loop', 'continue'], a: 1 },
+        ],
+      },
+      {
+        title: 'Unit-4: Arrays & Strings',
+        questions: [
+          { q: 'An array in C is', options: ['Collection of variables of different data types', 'Collection of variables of same data type', 'Collection of functions', 'None'], a: 1 },
+          { q: 'Array indexing in C starts from', options: ['0', '1', '-1', 'Depends on compiler'], a: 0 },
+          { q: 'The valid declaration of an integer array is', options: ['int arr[];', 'int arr[10];', 'arr int[10];', 'array int[10];'], a: 1 },
+          { q: 'If int a[5]; is declared, how many elements can be stored?', options: ['4', '5', '6', 'Unlimited'], a: 1 },
+          { q: 'If int a[5]; is declared, last index is', options: ['5', '4', '6', '0'], a: 1 },
+          { q: 'The base address of an array is', options: ['Address of last element', 'Address of first element', 'Average of addresses', 'None'], a: 1 },
+          { q: 'Which of the following accesses 3rd element of array arr?', options: ['arr[3]', 'arr(3)', 'arr{3}', 'arr[2]'], a: 3 },
+          { q: 'What is the size of int a[10]; if int = 4 bytes?', options: ['10 bytes', '20 bytes', '40 bytes', '4 bytes'], a: 2 },
+          { q: 'A two-dimensional array is also called', options: ['Matrix', 'Pointer', 'Table', 'Both A & C'], a: 3 },
+          { q: 'Declaration of 2D array with 3 rows and 4 columns is', options: ['int a[4][3];', 'int a[3][4];', 'int a[3,4];', 'int[3][4] a;'], a: 1 },
+          { q: 'Which header file is required for string functions?', options: ['stdio.h', 'string.h', 'conio.h', 'math.h'], a: 1 },
+          { q: 'Which function is used to find length of string?', options: ['strlen()', 'strsize()', 'length()', 'strlength()'], a: 0 },
+          { q: 'If char str[] = "Hello";, how many characters are stored including \\0?', options: ['4', '5', '6', 'Unlimited'], a: 2 },
+          { q: 'Which function is used to copy one string into another?', options: ['strcpy()', 'strcat()', 'strcmp()', 'strcopy()'], a: 0 },
+          { q: 'Which function is used to join two strings?', options: ['strcat()', 'strcpy()', 'strcmp()', 'strjoin()'], a: 0 },
+          { q: 'Which function compares two strings?', options: ['strcmp()', 'strcpy()', 'strcat()', 'strcomp()'], a: 0 },
+          { q: 'Which function is used to convert string into integer?', options: ['itoa()', 'atoi()', 'stoi()', 'strint()'], a: 1 },
+          { q: 'Array elements are stored in', options: ['Random locations', 'Continuous memory locations', 'Disk memory', 'CPU registers'], a: 1 },
+          { q: 'Which function is used to read a string with spaces?', options: ['scanf("%s",str);', 'gets(str);', 'puts(str);', 'getchar();'], a: 1 },
+          { q: 'Which function is used to print a string?', options: ['print()', 'puts()', 'cout', 'display()'], a: 1 },
+        ],
+      },
+      {
+        title: 'Unit-5: Functions',
+        questions: [
+          { q: 'A function in C is a', options: ['Block of statements with a name', 'Variable', 'Operator', 'Keyword'], a: 0 },
+          { q: 'The function which is automatically executed first in a C program is', options: ['start()', 'main()', 'printf()', 'init()'], a: 1 },
+          { q: 'Functions that are already defined in C libraries are called', options: ['User-defined functions', 'Standard library functions', 'Recursive functions', 'Inline functions'], a: 1 },
+          { q: 'Functions created by the programmer are called', options: ['Built-in functions', 'Library functions', 'User-defined functions', 'Header functions'], a: 2 },
+          { q: 'The keyword used to return a value from a function is', options: ['break', 'return', 'continue', 'exit'], a: 1 },
+          { q: 'How many values can a function return at a time?', options: ['Only 1', '2', 'Many', 'None'], a: 0 },
+          { q: 'Which of the following is not a valid function return type?', options: ['int', 'float', 'void', 'main'], a: 3 },
+          { q: 'If a function does not return any value, its return type is', options: ['null', 'void', 'int', 'empty'], a: 1 },
+          { q: 'Function parameters declared inside parentheses are called', options: ['Local variables', 'Formal parameters', 'Actual parameters', 'Global variables'], a: 1 },
+          { q: 'Values passed to a function while calling it are called', options: ['Formal parameters', 'Local variables', 'Actual parameters', 'Constants'], a: 2 },
+          { q: 'Function defined inside another function in C is', options: ['Allowed', 'Not allowed', 'Sometimes allowed', 'Compiler dependent'], a: 1 },
+          { q: 'Recursion means', options: ['Function calling another function', 'Function calling itself', 'Multiple functions running', 'None'], a: 1 },
+          { q: 'Which storage class is used to declare a function as global?', options: ['auto', 'register', 'static', 'extern'], a: 3 },
+          { q: 'What will happen if a function is called but not defined?', options: ['Compiles successfully', 'Linker error', 'Runtime error', 'Executes without output'], a: 1 },
+          { q: 'Which function is used to find power in C?', options: ['power()', 'exp()', 'pow()', 'sqrt()'], a: 2 },
+          { q: 'Which header file contains mathematical functions like pow() and sqrt()? ', options: ['stdio.h', 'conio.h', 'math.h', 'string.h'], a: 2 },
+          { q: 'By default, functions in C have a return type of', options: ['void', 'int', 'float', 'double'], a: 1 },
+          { q: 'Which of the following is true about function prototype?', options: ['It is optional', 'It declares function before main()', 'It is compulsory in all cases', 'None'], a: 1 },
+          { q: 'Passing the copy of actual arguments to function is called', options: ['Call by value', 'Call by reference', 'Call by address', 'Call by pointer'], a: 0 },
+          { q: 'Passing the address of actual arguments to function is called', options: ['Call by value', 'Call by reference', 'Call by copy', 'Call by name'], a: 1 },
+        ],
+      },
+      {
+        title: 'Unit-6: Pointers',
+        questions: [
+          { q: 'A pointer is a variable that stores', options: ['Data value', 'Address of another variable', 'Both data & address', 'Function only'], a: 1 },
+          { q: 'Which operator is used to get the address of a variable?', options: ['*', '&', '->', '%'], a: 1 },
+          { q: 'Which operator is used to access the value at the address stored in a pointer?', options: ['* (indirection operator)', '&', '->', '[]'], a: 0 },
+          { q: 'If int *p;, what type of data does p point to?', options: ['char', 'float', 'int', 'double'], a: 2 },
+          { q: 'The address of a pointer variable can be stored in', options: ['Normal variable', 'Array', 'Pointer to pointer', 'Structure only'], a: 2 },
+          { q: 'NULL pointer has value', options: ['1', '0', '-1', 'Garbage'], a: 1 },
+          { q: 'Which keyword is used to dynamically allocate memory?', options: ['malloc()', 'new', 'alloc()', 'memalloc()'], a: 0 },
+          { q: 'Which function is used to free allocated memory?', options: ['delete()', 'dealloc()', 'free()', 'release()'], a: 2 },
+          { q: 'What is the output of int a=10, *p=&a; printf("%d", *p);', options: ['Address of a', '10', 'Garbage', 'Error'], a: 1 },
+          { q: 'What is the size of a pointer on a 32-bit system?', options: ['2 bytes', '4 bytes', '8 bytes', 'Depends on data type'], a: 1 },
+          { q: 'What is the size of a pointer on a 64-bit system?', options: ['2 bytes', '4 bytes', '8 bytes', 'Depends on compiler'], a: 2 },
+          { q: 'Pointer to a pointer is declared as', options: ['int *ptr;', 'int **ptr;', 'int ptr;', 'int &ptr;'], a: 1 },
+          { q: 'Which pointer is automatically created for each function?', options: ['this', 'self', 'function pointer', 'base pointer'], a: 0 },
+          { q: 'What is a dangling pointer?', options: ['Pointer pointing to valid memory', 'Pointer pointing to freed memory', 'NULL pointer', 'Constant pointer'], a: 1 },
+          { q: 'Which function is used to allocate memory and initialize it to zero?', options: ['malloc()', 'calloc()', 'realloc()', 'free()'], a: 1 },
+          { q: 'Which function is used to change the size of allocated memory?', options: ['malloc()', 'calloc()', 'realloc()', 'free()'], a: 2 },
+          { q: 'Array name in C acts as', options: ['Pointer to last element', 'Pointer to first element', 'Address of size of array', 'Garbage'], a: 1 },
+          { q: 'Which pointer type is used to point to any data type?', options: ['void pointer', 'null pointer', 'function pointer', 'char pointer'], a: 0 },
+          { q: 'Function pointers are declared using', options: ['int *fun();', 'int (*fun)();', 'int fun();', 'int &fun();'], a: 1 },
+          { q: 'What will happen if we try to dereference a NULL pointer?', options: ['0 is returned', 'Program crashes (runtime error)', 'Garbage value', 'Compilation error'], a: 1 },
+        ],
+      },
+      {
+        title: 'Unit-7: Structures & Unions',
+        questions: [
+          { q: 'A structure in C is a', options: ['Collection of variables of same data type', 'Collection of variables of different data types', 'Collection of functions', 'Collection of arrays only'], a: 1 },
+          { q: 'Keyword used to define a structure is', options: ['struct', 'structure', 'record', 'union'], a: 0 },
+          { q: 'Members of a structure are accessed using', options: ['*', '-> or .', '&', '%'], a: 1 },
+          { q: 'What is the default access level of structure members in C?', options: ['public', 'private', 'protected', 'none (all are accessible)'], a: 3 },
+          { q: 'Which operator is used to access structure members through a variable?', options: ['->', '.', '&', '*'], a: 1 },
+          { q: 'Which operator is used to access structure members through a pointer?', options: ['->', '.', '*', '%'], a: 0 },
+          { q: 'What is the size of a structure?', options: ['Sum of sizes of all members', 'Size of largest member', 'Depends on padding & alignment', 'Always 1 byte'], a: 2 },
+          { q: 'A union in C is a', options: ['Collection of functions', 'Collection of variables sharing same memory location', 'Collection of arrays', 'None'], a: 1 },
+          { q: 'Keyword used to define a union is', options: ['struct', 'union', 'record', 'class'], a: 1 },
+          { q: 'Size of a union is equal to', options: ['Sum of sizes of all members', 'Size of largest member', 'Product of member sizes', 'Always fixed (4 bytes)'], a: 1 },
+          { q: 'Which of the following is true about structures?', options: ['Structure can have functions as members', 'Structure can be nested inside another structure', 'Structure members are accessed using comma', 'Structure has no memory allocation'], a: 1 },
+          { q: 'Which storage class specifier is used with structures?', options: ['extern', 'auto', 'static', 'All of the above'], a: 3 },
+          { q: 'Can structures contain arrays as members?', options: ['Yes', 'No', 'Only int arrays', 'Only char arrays'], a: 0 },
+          { q: 'Structure variables can be passed to functions using', options: ['Call by value', 'Call by reference (using pointers)', 'Both A and B', 'Neither'], a: 2 },
+          { q: 'Which of the following allows structures to be reused?', options: ['typedef', '#define', 'extern', 'macro'], a: 0 },
+          { q: 'Which is true about unions?', options: ['All members share same memory', 'Only one member can store value at a time', 'Size = largest member', 'All of the above'], a: 3 },
+          { q: 'Which statement is true about structure and union?', options: ['Structure stores all members at different memory locations', 'Union stores all members at same memory location', 'Both A and B', 'Neither A nor B'], a: 2 },
+          { q: 'Which of the following is valid structure declaration?', options: ['struct student { int roll; char name[20]; };', 'struct student ( int roll; char name[20]; );', 'student struct { int roll; char name[20]; };', 'struct { int roll; char name[20] } student;'], a: 0 },
+          { q: 'Which of the following can be used as structure members?', options: ['Arrays', 'Pointers', 'Other structures', 'All of the above'], a: 3 },
+          { q: 'Which of the following is better when memory is limited?', options: ['Structure', 'Union', 'Array', 'Pointer'], a: 1 },
+        ],
+      },
+      {
+        title: 'Unit-8: File Handling',
+        questions: [
+          { q: 'Which header file is required for file handling functions?', options: ['stdio.h', 'conio.h', 'file.h', 'fstream.h'], a: 0 },
+          { q: 'Which function is used to open a file in C?', options: ['fopen()', 'open()', 'fileopen()', 'fcreate()'], a: 0 },
+          { q: 'Which function is used to close a file?', options: ['fclose()', 'fexit()', 'closefile()', 'stop()'], a: 0 },
+          { q: 'Mode "r" in fopen() means', options: ['Read only', 'Write only', 'Read and write', 'Append'], a: 0 },
+          { q: 'Mode "w" in fopen() means', options: ['Open file for reading', 'Open file for writing (new file created or existing file truncated)', 'Append to existing file', 'Write only if file exists'], a: 1 },
+          { q: 'Mode "a" in fopen() means', options: ['Append data to file', 'Access file', 'Allocate memory', 'Abort'], a: 0 },
+          { q: 'Which function is used to read a character from file?', options: ['getchar()', 'getc()', 'fread()', 'scanf()'], a: 1 },
+          { q: 'Which function is used to write a character to file?', options: ['putc()', 'printf()', 'fwrite()', 'puts()'], a: 0 },
+          { q: 'Which function is used to read a string from file?', options: ['fgets()', 'gets()', 'freadstr()', 'scanf()'], a: 0 },
+          { q: 'Which function is used to write a string into file?', options: ['fputs()', 'puts()', 'fwrite()', 'fprintf()'], a: 0 },
+          { q: 'Which function is used to read data in block form from file?', options: ['fread()', 'fgetc()', 'fscanf()', 'fgets()'], a: 0 },
+          { q: 'Which function is used to write data in block form to file?', options: ['fwrite()', 'fprintf()', 'fputc()', 'fputs()'], a: 0 },
+          { q: 'Which function is used to set file position?', options: ['fseek()', 'ftell()', 'rewind()', 'fpos()'], a: 0 },
+          { q: 'Which function returns current position of file pointer?', options: ['fpos()', 'ftell()', 'fseek()', 'rewind()'], a: 1 },
+          { q: 'Which function moves file pointer to beginning of file?', options: ['start()', 'rewind()', 'reset()', 'home()'], a: 1 },
+          { q: 'The return type of fopen() is', options: ['int', 'char', 'FILE *', 'void'], a: 2 },
+          { q: 'If file cannot be opened, fopen() returns', options: ['0', '1', 'NULL', '-1'], a: 2 },
+          { q: 'Which function is used to format output to a file?', options: ['printf()', 'fprintf()', 'sprintf()', 'fputs()'], a: 1 },
+          { q: 'Which function is used to format input from a file?', options: ['fscanf()', 'scanf()', 'fread()', 'fgets()'], a: 0 },
+          { q: 'Files in C are stored in', options: ['CPU registers', 'Main memory', 'Secondary storage (Hard disk)', 'Cache memory'], a: 2 },
+        ],
+      },
+    ];
+    const TOTAL_QUESTIONS = UNITS.reduce((sum, unit) => sum + unit.questions.length, 0);
+
+    // ====== State ======
+    const DURATION_SECONDS = 150 * 60; // 2.5 hours
+    let remaining = DURATION_SECONDS;
+    let timerId = null;
+    let started = false;
+    let submitted = false;
+    let switchTriggered = false;
+    let activeUnit = 0;
+    let unitTabs = [];
+    let unitPanels = [];
+
+    const el = (id) => document.getElementById(id);
+    const escapeHtml = (input) => String(input)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+    // ====== Render Quiz ======
+    function renderQuiz() {
+      unitTabs = [];
+      unitPanels = [];
+      activeUnit = 0;
+
+      const form = el('quizForm');
+      form.innerHTML = '';
+
+      const tabList = document.createElement('div');
+      tabList.className = 'tabs';
+      tabList.setAttribute('role', 'tablist');
+      form.appendChild(tabList);
+
+      const wrapper = document.createElement('div');
+      wrapper.id = 'unitsWrapper';
+      form.appendChild(wrapper);
+
+      let questionNumber = 1;
+
+      UNITS.forEach((unit, unitIdx) => {
+        const tab = document.createElement('button');
+        tab.type = 'button';
+        tab.className = 'tab' + (unitIdx === 0 ? ' active' : '');
+        tab.dataset.unit = String(unitIdx);
+        tab.textContent = unit.title;
+        tab.addEventListener('click', () => setActiveUnit(unitIdx));
+        unitTabs.push(tab);
+        tabList.appendChild(tab);
+
+        const section = document.createElement('div');
+        section.className = 'unitBlock' + (unitIdx === 0 ? ' active' : '');
+        section.dataset.unit = String(unitIdx);
+        unitPanels.push(section);
+
+        unit.questions.forEach((item, qIdx) => {
+          const qId = `u${unitIdx}q${qIdx}`;
+          const block = document.createElement('div');
+          block.className = 'q';
+          const qNumber = questionNumber++;
+          block.innerHTML = `
+            <h3>Q${String(qNumber).padStart(3, '0')}. ${escapeHtml(item.q)}</h3>
+            <div class="answers">
+              ${item.options.map((opt, i) => `
+                <label class="option">
+                  <input type="radio" name="${qId}" value="${i}" required />
+                  <span>${escapeHtml(opt)}</span>
+                </label>
+              `).join('')}
+            </div>
+          `;
+          section.appendChild(block);
+        });
+
+        wrapper.appendChild(section);
+      });
+
+      if (unitTabs.length) {
+        setActiveUnit(0);
+      }
+    }
+
+    function setActiveUnit(index) {
+      if (!unitTabs.length || !unitPanels.length) return;
+      activeUnit = index;
+      unitTabs.forEach((btn, idx) => btn.classList.toggle('active', idx === index));
+      unitPanels.forEach((panel, idx) => panel.classList.toggle('active', idx === index));
+    }
+
+    // ====== Timer ======
+    function updateTimerDisplay() {
+      const m = String(Math.floor(remaining / 60)).padStart(2, '0');
+      const s = String(remaining % 60).padStart(2, '0');
+      el('time').textContent = `${m}:${s}`;
+      const pct = (1 - remaining / DURATION_SECONDS) * 100;
+      el('bar').style.width = pct + '%';
+    }
+
+    function tick() {
+      remaining = Math.max(remaining - 1, 0);
+      updateTimerDisplay();
+      if (remaining === 0) {
+        autoSubmit('Time is up. Your answers have been submitted.');
+      }
+    }
+
+    function startTimer() {
+      stopTimer();
+      timerId = setInterval(tick, 1000);
+    }
+    function stopTimer() {
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+    }
+
+    // ====== Fullscreen helpers ======
+    async function enterFullscreen() {
+      const docEl = document.documentElement;
+      if (docEl.requestFullscreen) return docEl.requestFullscreen();
+      if (docEl.webkitRequestFullscreen) return docEl.webkitRequestFullscreen();
+    }
+    function isFullscreen() {
+      return document.fullscreenElement || document.webkitFullscreenElement;
+    }
+
+    // ====== Anti-switch handling ======
+    function handleFocusLoss(reason) {
+      if (!started || submitted || switchTriggered) return;
+      switchTriggered = true; // lock so it's called once
+      showBlocker();
+      autoSubmit(`You left the exam (${reason}). The test has been auto‑submitted.`);
+    }
+
+    function showBlocker() {
+      const b = el('blocker');
+      b.style.display = 'flex';
+    }
+    function hideBlocker() { el('blocker').style.display = 'none'; }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) handleFocusLoss('tab not visible');
+    });
+    window.addEventListener('blur', () => {
+      // blur can happen on UI interactions too, but for an exam we enforce strictly
+      if (started && !submitted) handleFocusLoss('window lost focus');
+    });
+    document.addEventListener('fullscreenchange', () => {
+      if (started && !submitted && !isFullscreen()) handleFocusLoss('full‑screen exited');
+    });
+
+    // Block context menu & common shortcuts
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('copy', e => e.preventDefault());
+    document.addEventListener('cut', e => e.preventDefault());
+    document.addEventListener('paste', e => e.preventDefault());
+    document.addEventListener('keydown', (e) => {
+      const k = e.key.toLowerCase();
+      if (
+        e.key === 'F5' ||
+        (e.ctrlKey && (k === 'r' || k === 'p' || k === 's' || k === 'w' || k === 't' || k === 'l' || k === 'c' || k === 'v')) ||
+        (e.metaKey && (k === 'r' || k === 'p' || k === 's' || k === 'w' || k === 't' || k === 'l' || k === 'c' || k === 'v')) ||
+        (e.ctrlKey && e.shiftKey && (k === 'i' || k === 'c' || k === 'j'))
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, true);
+
+    // ====== Submission ======
+    function gatherResults() {
+      const form = el('quizForm');
+      const responses = [];
+      let correct = 0;
+      let number = 1;
+
+      UNITS.forEach((unit, unitIdx) => {
+        unit.questions.forEach((item, qIdx) => {
+          const fieldName = `u${unitIdx}q${qIdx}`;
+          const selected = form.querySelector(`input[name="${fieldName}"]:checked`);
+          const chosenIndex = selected ? Number(selected.value) : null;
+          if (chosenIndex === item.a) correct++;
+          responses.push({
+            number: number++,
+            unitTitle: unit.title,
+            unitQuestion: qIdx + 1,
+            question: item.q,
+            options: item.options,
+            correctIndex: item.a,
+            chosenIndex
+          });
+        });
+      });
+
+      return { correct, responses };
+    }
+
+    function areAllQuestionsAnswered() {
+      const form = el('quizForm');
+      return UNITS.every((unit, unitIdx) =>
+        unit.questions.every((_, qIdx) =>
+          form.querySelector(`input[name="u${unitIdx}q${qIdx}"]:checked`)
+        )
+      );
+    }
+
+    function renderReview(responses) {
+      const review = el('review');
+      review.innerHTML = '';
+      review.scrollTop = 0;
+      responses.forEach((entry) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'reviewItem';
+        const correctText = entry.options[entry.correctIndex];
+        const chosenIndex = entry.chosenIndex;
+        const chosenText = chosenIndex !== null ? entry.options[chosenIndex] : 'Not answered';
+        const badgeClass = chosenIndex === entry.correctIndex ? 'correct' : (chosenIndex === null ? 'blank' : 'response');
+        wrapper.innerHTML = `
+          <h4>${String(entry.number).padStart(3, '0')}. ${escapeHtml(entry.unitTitle)} - Question ${entry.unitQuestion}</h4>
+          <p><strong>Question:</strong> ${escapeHtml(entry.question)}</p>
+          <p><span class="badge correct">Correct</span>${escapeHtml(correctText)}</p>
+          <p><span class="badge ${badgeClass}">Your answer</span>${escapeHtml(chosenText)}</p>
+        `;
+        review.appendChild(wrapper);
+      });
+    }
+
+    function autoSubmit(message) {
+      if (submitted) return;
+      submitted = true;
+      stopTimer();
+      hideBlocker();
+      showResults(message);
+      try { document.exitFullscreen && document.exitFullscreen(); } catch (_) {}
+    }
+
+    function showResults(extraMsg) {
+      const { correct, responses } = gatherResults();
+      el('examCard').classList.add('hidden');
+      el('resultCard').classList.remove('hidden');
+      const roll = (el('rollNumber').value || '').trim();
+      el('candidateOut').textContent = roll ? `Roll number: ${roll}` : 'Roll number not provided';
+      el('score').textContent = `${correct} / ${TOTAL_QUESTIONS}`;
+      const passMark = Math.ceil(TOTAL_QUESTIONS * 0.7);
+      const passed = correct >= passMark;
+      el('score').className = 'scoreBadge ' + (passed ? 'good' : 'bad');
+      const fallback = passed ? 'Great job!' : 'Thanks for attempting the test.';
+      el('verdict').textContent = extraMsg || fallback;
+      renderReview(responses);
+    }
+
+    // ====== Lifecycle buttons ======
+    el('startBtn').addEventListener('click', async () => {
+      if (started) return;
+      const rollInput = el('rollNumber');
+      const rollValue = rollInput.value.trim();
+      if (!rollValue) {
+        alert('Please enter your roll number to begin.');
+        rollInput.focus();
+        return;
+      }
+      await enterFullscreen();
+      started = true;
+      switchTriggered = false;
+      el('startCard').classList.add('hidden');
+      el('examCard').classList.remove('hidden');
+      renderQuiz();
+      remaining = DURATION_SECONDS;
+      updateTimerDisplay();
+      startTimer();
+    });
+
+    el('submitBtn').addEventListener('click', () => {
+      if (submitted) return;
+      if (!areAllQuestionsAnswered()) {
+        alert(`Please answer all ${TOTAL_QUESTIONS} questions before submitting.`);
+        return;
+      }
+      submitted = true;
+      stopTimer();
+      showResults('Submitted successfully.');
+      try { document.exitFullscreen && document.exitFullscreen(); } catch (_) {}
+    });
+
+    el('retryBtn').addEventListener('click', () => {
+      location.reload();
+    });
+
+    el('resumeBtn').addEventListener('click', async () => {
+      hideBlocker();
+      await enterFullscreen();
+    });
+
+    // Initial render
+    renderQuiz();
+    updateTimerDisplay();
+  </script>
+</body>
+</html>
